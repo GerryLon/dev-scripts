@@ -54,6 +54,7 @@ function echoSuccess() {
 	echo -e "\033[42;37m$text\033[0m"
 }
 
+# blue bg, white fg
 function echoInfo() {
 	local text="$1"
 	if [ -z "$text" ]; then
@@ -64,3 +65,13 @@ function echoInfo() {
 	echo -e "\033[44;37m$text\033[0m"
 }
 
+# yello bg, red fg
+function echoWarn() {
+	local text="$1"
+	if [ -z "$text" ]; then
+ 		echo "text is null"
+		return 1
+	fi
+	
+	echo -e "\033[43;31m$text\033[0m"
+}

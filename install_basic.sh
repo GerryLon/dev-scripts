@@ -8,7 +8,7 @@ scriptDir=$(cd `dirname $0`; pwd)
 
 etcProfile='/etc/profile'
 softDir=/opt
-# startDir=`pwd`
+startDir=`pwd`
 appConf="$scriptDir/app.properties"
 
 if [ $UID -ne 0 ]; then
@@ -75,9 +75,7 @@ if ! isCmdExist git; then
 
 	gitBall='git-2.3.9.tar.xz'
 	
-	if [ ! -f "$softDir/$gitBall" ]; then
-		wget -O "$softDir/$gitBall" "https://mirrors.edge.kernel.org/pub/software/scm/git/$gitBall"
-	fi
+	wget -O "$softDir/$gitBall" -c "https://mirrors.edge.kernel.org/pub/software/scm/git/$gitBall"
 	tar -C "$softDir" -xJf "$softDir/$gitBall"
 	cd "$softDir/git-2.3.9"
 	make prefix=/usr/local all
@@ -97,7 +95,7 @@ fi
 # install golang
 if ! isCmdExist go; then
 	echoInfo 'installing golang ...'
-	goroot='/usr/local/go'
+	goroot=`getProperty $appConf goroot`
 	gopath=`getProperty $appConf gopath`
 
 	test ! -d $goroot && mkdir -p $goroot
@@ -105,16 +103,13 @@ if ! isCmdExist go; then
 
 	golangBall='go1.11.linux-amd64.tar.gz'
 
-	if [ ! -f "$softDir/$golangBall" ]; then
-		wget -O "$softDir/$golangBall" "https://studygolang.com/dl/golang/$golangBall"
-		
-		if [ $? -ne 0 ]; then
-			echoError 'download golang tarball failed, please check!'
-			exit 1
-		fi
+	wget -O "$softDir/$golangBall" -c "https://studygolang.com/dl/golang/$golangBall"	
+	if [ $? -ne 0 ]; then
+		echoError 'download golang tarball failed, please check!'
+		exit 1
 	fi
 
-	tar -C /usr/local -xzf "$softDir/go1.11.linux-amd64.tar.gz"
+	tar -C /usr/local -xzf "$softDir/$golangBall"
 	
 	echo "# added on `date +"%Y-%m-%d %H:%M:%S"`
 export GOROOT=$goroot
@@ -123,7 +118,7 @@ export GOBIN=
 export PATH=\$PATH:\$GOROOT/bin:\${GOPATH//://bin:}/bin" >> $etcProfile
 	source $etcProfile
 	
-	go version
+	go version >/dev/null 2>&1
 
 	if [ $? -ne 0 ]; then
 		echoError 'install golang failed, please check!'
@@ -134,8 +129,46 @@ export PATH=\$PATH:\$GOROOT/bin:\${GOPATH//://bin:}/bin" >> $etcProfile
 else
 	echoInfo 'go was already installed'
 fi
+go version
 
+redisRoot=`getProperty $appConf redisRoot`
+# redisRoot=${redisRoot:-'/usr/local/redis'} # redis root default value	
+if [ $? -ne 0 ]; then
+	redisRoot=/usr/local/redis
+	echoWarn "redisRoot is not set, using defaults: $redisRoot"
+else
+	echoInfo "load Config from $appConf, redisRoot=$redisRoot"
+fi
+[ ! -d "$redisRoot" ] && echo "creating dir: $redisRoot" && mkdir -p "$redisRoot"
 
+if ! isCmdExist "$redisRoot/bin/redis-server"; then
+	redisVersion=`getProperty $appConf redisVersion`
+	if [ $? -ne 0 ]; then
+		redisVersion=4.0.11
+		echoWarn "redisVersion is not set, using defaults: $redisVersion"
+	else
+		echoInfo "load Config from $appConf, redisVersion=$redisVersion"
+	fi
+	redisSrcDir="redis-$redisVersion"
+	redisBall="$redisSrcDir.tar.gz"
+	
+	# [ ! -f "$softDir/redis-$redisVersion.tar.gz" ] \
+	echoInfo "downloading redis-$redisVersion.tar.gz"
+	wget -O "$softDir/$redisBall" -c "http://download.redis.io/releases/$redisBall"
+	[ $? -ne 0 ] && echo "doanload $redisBall failed" && exit 1
+	cd "$softDir"
+	tar -zxf "$redisBall"
+	cd "$redisSrcDir"
+	make && cd src && make install PREFIX="$redisRoot"
+	[ ! -d "$redisRoot/conf" ] && echo "mkdir $redisRoot/conf" && mkdir "$redisRoot/conf"
+	cp ../redis.conf "$redisRoot/conf"
+	echo 'make soft link for redis commands in /usr/local/bin'
+	for i in `ls $redisRoot/bin`; do
+		ln -s "$redisRoot/bin/$i" "/usr/local/bin/$i"
+	done
+
+	cd $startDir
+fi
 
 
 
