@@ -11,7 +11,7 @@ function getProperty() {
 	local propFile="$1"
 	local key="$2"
 	
-    if [ ! -r "$propFile" ]; then
+	if [ ! -r "$propFile" ]; then
 		echo 'properties fils is not readable'
 		return 2
 	fi

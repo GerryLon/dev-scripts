@@ -91,6 +91,14 @@ if ! isCmdExist git; then
 else
 	echoInfo 'git was already installed'
 fi
+echo 'config git alias'
+git config --global alias.st "status"
+git config --global alias.br "branch"
+git config --global alias.co "commit"
+git config --global alias.cm "commit -m"
+git config --global alias.df "diff"
+git config --global alias.sh "stash"
+
 
 # install golang
 if ! isCmdExist go; then
@@ -137,7 +145,7 @@ if [ $? -ne 0 ]; then
 	redisRoot=/usr/local/redis
 	echoWarn "redisRoot is not set, using defaults: $redisRoot"
 else
-	echoInfo "load Config from $appConf, redisRoot=$redisRoot"
+	echoInfo "Config: redisRoot=$redisRoot"
 fi
 [ ! -d "$redisRoot" ] && echo "creating dir: $redisRoot" && mkdir -p "$redisRoot"
 
@@ -147,7 +155,7 @@ if ! isCmdExist "$redisRoot/bin/redis-server"; then
 		redisVersion=4.0.11
 		echoWarn "redisVersion is not set, using defaults: $redisVersion"
 	else
-		echoInfo "load Config from $appConf, redisVersion=$redisVersion"
+		echoInfo "Config: redisVersion=$redisVersion"
 	fi
 	redisSrcDir="redis-$redisVersion"
 	redisBall="$redisSrcDir.tar.gz"
@@ -169,13 +177,6 @@ if ! isCmdExist "$redisRoot/bin/redis-server"; then
 
 	cd $startDir
 fi
-
-
-
-
-
-
-
 
 
 
