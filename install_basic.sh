@@ -37,8 +37,16 @@ else
 	echoInfo 'aliyun yum repository was already installed'
 fi
 
-# install man
-! isCmdExist man && echoInfo 'installing man' && yum install -y man
+# install sys tools 
+systools=""
+for i in man strace; do
+	if ! isCmdExist "$i"; then
+		systools="$systools $i"	
+	fi
+done
+echoInfo "installing $systools"
+# notice: $systools instead of "$systools"
+yum install -y $systools
 
 # install vim
 if ! isCmdExist vim; then
