@@ -39,21 +39,17 @@ fi
 
 # install sys tools 
 systools=""
-for i in man strace; do
+for i in man strace vim gcc; do
 	if ! isCmdExist "$i"; then
 		systools="$systools $i"	
+	else
+		echoInfo "$i was already installed"
 	fi
 done
-echoInfo "installing $systools"
-# notice: $systools instead of "$systools"
-yum install -y $systools
-
-# install vim
-if ! isCmdExist vim; then
-	echoInfo 'installing vim ...'
-	yum install -y vim
-else
-	echoInfo 'vim was already installed'
+if [ -n "$systools" ]; then
+	echoInfo "installing $systools"
+	# notice: $systools instead of "$systools"
+	yum install -y $systools
 fi
 
 cat /etc/vimrc | grep -q 'set ts=4'
@@ -69,7 +65,7 @@ fi
 if ! isCmdExist git; then
 	echoInfo 'installing git ...'
 	# kernel dependency
-	yum install -y gcc curl-devel expat-devel gettext-devel openssl-devel zlib-devel
+	yum install -y curl-devel expat-devel gettext-devel openssl-devel zlib-devel
 
 	# install from source code,will cause error, should install below
 	yum install -y perl-ExtUtils-CBuilder perl-ExtUtils-MakeMaker
