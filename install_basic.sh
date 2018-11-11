@@ -1,17 +1,20 @@
 #!/bin/bash
 
-. "./public/index.sh"
+# work dir
+scriptDir=$(cd `dirname $0`; pwd)
+
+# import public scripts
+. "$scriptDir/public/index.sh"
+
+etcProfile='/etc/profile'
+softDir=/opt
+# startDir=`pwd`
+appConf="$scriptDir/app.properties"
 
 if [ $UID -ne 0 ]; then
 	echoInfo 'You are not root user'
 	exit 1
 fi
-
-etcProfile='/etc/profile'
-softDir=/opt
-# startDir=`pwd`
-scriptDir=$(cd `dirname $0`; pwd)
-echoInfo "scriptDir: $scriptDir"
 
 [ ! -d $softDir ] && echoInfo "$softDir not exist, creating..." && mkdir -p "$softDir"
 
@@ -24,8 +27,9 @@ else
 fi
 
 # install aliyun yum repository
+echoInfo 'checking aliyun yum repository'
 if ! yum repolist | grep -q 'aliyun.com'; then
-	echoInfo 'installing yum repository ...'
+	echoInfo 'installing aliyun yum repository ...'
 	mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
 	wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-6.repo
 	yum makecache
@@ -90,7 +94,7 @@ fi
 if ! isCmdExist go; then
 	echoInfo 'installing golang ...'
 	goroot='/usr/local/go'
-	gopath=`getProperty $scriptDir/app.properties gopath`
+	gopath=`getProperty $appConf gopath`
 
 	test ! -d $goroot && mkdir -p $goroot
 	test ! -d $gopath && mkdir -p $gopath
