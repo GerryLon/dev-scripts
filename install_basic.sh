@@ -38,144 +38,214 @@ else
 fi
 
 # install sys tools 
-systools=""
-for i in man strace vim gcc; do
-	if ! isCmdExist "$i"; then
-		systools="$systools $i"	
-	else
-		echoInfo "$i was already installed"
+function installSystools() {
+	local systools=""
+	for i in man strace vim gcc; do
+		if ! isCmdExist "$i"; then
+			systools="$systools $i"	
+		else
+			echoInfo "$i was already installed"
+		fi
+	done
+	if [ -n "$systools" ]; then
+		echoInfo "installing $systools"
+		# notice: $systools instead of "$systools"
+		yum install -y $systools
 	fi
-done
-if [ -n "$systools" ]; then
-	echoInfo "installing $systools"
-	# notice: $systools instead of "$systools"
-	yum install -y $systools
-fi
 
-cat /etc/vimrc | grep -q 'set ts=4'
-if [ $? -ne 0 ]; then
-	echo "
-set nu
+	cat /etc/vimrc | grep -q 'set ts=4'
+	if [ $? -ne 0 ]; then
+		echo "set nu
 set ts=4
 set ai
-" >> /etc/vimrc
-fi
-
-# install git
-if ! isCmdExist git; then
-	echoInfo 'installing git ...'
-	# kernel dependency
-	yum install -y curl-devel expat-devel gettext-devel openssl-devel zlib-devel
-
-	# install from source code,will cause error, should install below
-	yum install -y perl-ExtUtils-CBuilder perl-ExtUtils-MakeMaker
-	
-	# uncompress git-x.y.z.tar.gz
-	yum install -y xz
-
-	gitBall='git-2.3.9.tar.xz'
-	
-	wget -O "$softDir/$gitBall" -c "https://mirrors.edge.kernel.org/pub/software/scm/git/$gitBall"
-	tar -C "$softDir" -xJf "$softDir/$gitBall"
-	cd "$softDir/git-2.3.9"
-	make prefix=/usr/local all
-	sudo make prefx=/usr/local install
-	cd -
-
-	if ! git version; then
-		echoError 'install git failed, please check!'
-		exit 1
-	else
-		echoInfo 'install git success'
+set shiftwidth=4
+	" >> /etc/vimrc
 	fi
-else
-	echoInfo 'git was already installed'
-fi
-echo 'config git alias'
-git config --global alias.st "status"
-git config --global alias.br "branch"
-git config --global alias.co "commit"
-git config --global alias.cm "commit -m"
-git config --global alias.df "diff"
-git config --global alias.sh "stash"
+}
+installSystools
 
+# mount windows dir
+function mountWorkspace() {
+	mountFlag=`getProperty $appConf mount`
+	if [ "x$mountFlag" != "x1" ]; then
+		echoWarn "you do not wanna install git"
+		return 1
+	fi
+	
+	mountIp=`getProperty $appConf mountIp`
+	mountUsername=`getProperty $appConf mountUsername gerrylon`
+	mountPassword=`getProperty $appConf mountPassword gerrylon`
+	mountSrcDir=`getProperty $appConf mountSrcDir workspace`
+	mountDstDir=`getProperty $appConf mountDstDir /var/workspace`
+	
+	if ! isValidIp "$mountIp"; then
+		echoError "invalid ip found: $mountIp, please check!"
+		return 1
+	fi
 
-# install golang
-if ! isCmdExist go; then
-	echoInfo 'installing golang ...'
-	goroot=`getProperty $appConf goroot`
-	gopath=`getProperty $appConf gopath`
+	df -h | grep -q "$mountDstDir"
+	if [ $? -eq 0 ]; then
+		echoInfo "//$mountIp/$mountSrcDir was already mounted to $mountDstDir"
+		return
+	fi
+	echo "mounting //$mountIp/$mountSrcDir to $mountDstDir"
+	[ ! -d $mountDstDir ] && echoWarn "creating dir: $mountDstDir" && mkdir -p "$mountDstDir"
+	mount -t cifs -o username=$mountUsername,password=$mountPassword,vers=2.0,iocharset=utf8 //$mountIp/$mountSrcDir $mountDstDir
 
-	test ! -d $goroot && mkdir -p $goroot
-	test ! -d $gopath && mkdir -p $gopath
-
-	golangBall='go1.11.linux-amd64.tar.gz'
-
-	wget -O "$softDir/$golangBall" -c "https://studygolang.com/dl/golang/$golangBall"	
+	df -h | grep -q "$mountDstDir"
 	if [ $? -ne 0 ]; then
-		echoError 'download golang tarball failed, please check!'
-		exit 1
+		echoError "mount error"
+		return 1
+	fi
+	echoInfo "mount success"
+	return $? 
+}
+mountWorkspace
+
+function installGit() {
+	local gitFlag=$(getProperty $appConf git)
+	if [ "x$gitFlag" != "x1" ]; then
+		echoWarn "you do not wanna install git"
+		return
+	fi
+	
+	# install git
+	if ! isCmdExist git; then
+		echoInfo 'installing git ...'
+		# kernel dependency
+		yum install -y curl-devel expat-devel gettext-devel openssl-devel zlib-devel
+
+		# install from source code,will cause error, should install below
+		yum install -y perl-ExtUtils-CBuilder perl-ExtUtils-MakeMaker
+		
+		# uncompress git-x.y.z.tar.gz
+		yum install -y xz
+
+		gitBall='git-2.3.9.tar.xz'
+		
+		wget -O "$softDir/$gitBall" -c "https://mirrors.edge.kernel.org/pub/software/scm/git/$gitBall"
+		tar -C "$softDir" -xJf "$softDir/$gitBall"
+		cd "$softDir/git-2.3.9"
+		make prefix=/usr/local all
+		sudo make prefx=/usr/local install
+		cd -
+
+		if ! git version; then
+			echoError 'install git failed, please check!'
+			exit 1
+		else
+			echoInfo 'install git success'
+		fi
+	else
+		echoInfo 'git was already installed'
+	fi
+	echo 'config git alias'
+	git config --global alias.st "status"
+	git config --global alias.br "branch"
+	git config --global alias.co "commit"
+	git config --global alias.cm "commit -m"
+	git config --global alias.df "diff"
+	git config --global alias.sh "stash"
+}
+installGit
+
+function installGo() {
+	local goFlag=$(getProperty $appConf go)
+	if [ "x$goFlag" != "x1" ]; then
+		echoWarn "you do not wanna install golang"
+		return
 	fi
 
-	tar -C /usr/local -xzf "$softDir/$golangBall"
-	
-	echo "# added on `date +"%Y-%m-%d %H:%M:%S"`
+	# install golang
+	if ! isCmdExist go; then
+		echoInfo 'installing golang ...'
+		goroot=`getProperty $appConf goroot`
+		gopath=`getProperty $appConf gopath`
+
+		test ! -d $goroot && mkdir -p $goroot
+		test ! -d $gopath && mkdir -p $gopath
+
+		golangBall='go1.11.linux-amd64.tar.gz'
+
+		wget -O "$softDir/$golangBall" -c "https://studygolang.com/dl/golang/$golangBall"	
+		if [ $? -ne 0 ]; then
+			echoError 'download golang tarball failed, please check!'
+			exit 1
+		fi
+
+		tar -C /usr/local -xzf "$softDir/$golangBall"
+		
+		echo "# added on `date +"%Y-%m-%d %H:%M:%S"`
 export GOROOT=$goroot
 export GOPATH=$gopath
 export GOBIN=
 export PATH=\$PATH:\$GOROOT/bin:\${GOPATH//://bin:}/bin" >> $etcProfile
-	source $etcProfile
-	
-	go version >/dev/null 2>&1
+		source $etcProfile
+		
+		go version >/dev/null 2>&1
 
-	if [ $? -ne 0 ]; then
-		echoError 'install golang failed, please check!'
-		exit 1
+		if [ $? -ne 0 ]; then
+			echoError 'install golang failed, please check!'
+			exit 1
+		else
+			echoInfo 'install golang success'
+		fi
 	else
-		echoInfo 'install golang success'
+		echoInfo 'go was already installed'
 	fi
-else
-	echoInfo 'go was already installed'
-fi
-go version
+	go version
+}
+installGo
 
-redisRoot=`getProperty $appConf redisRoot`
-# redisRoot=${redisRoot:-'/usr/local/redis'} # redis root default value	
-if [ $? -ne 0 ]; then
-	redisRoot=/usr/local/redis
-	echoWarn "redisRoot is not set, using defaults: $redisRoot"
-else
-	echoInfo "Config: redisRoot=$redisRoot"
-fi
-[ ! -d "$redisRoot" ] && echo "creating dir: $redisRoot" && mkdir -p "$redisRoot"
+function installRedis() {
+	redisFlag=$(getProperty $appConf redis)
+	if [ "x$redisFlag" != "x1" ]; then
+		echoWarn "you do not wanna install redis"
+		return
+	fi
 
-if ! isCmdExist "$redisRoot/bin/redis-server"; then
-	redisVersion=`getProperty $appConf redisVersion`
+	redisRoot=`getProperty $appConf redisRoot`
+	# redisRoot=${redisRoot:-'/usr/local/redis'} # redis root default value	
 	if [ $? -ne 0 ]; then
-		redisVersion=4.0.11
-		echoWarn "redisVersion is not set, using defaults: $redisVersion"
+		redisRoot=/usr/local/redis
+		echoWarn "redisRoot is not set, using defaults: $redisRoot"
 	else
-		echoInfo "Config: redisVersion=$redisVersion"
+		echoInfo "Config: redisRoot=$redisRoot"
 	fi
-	redisSrcDir="redis-$redisVersion"
-	redisBall="$redisSrcDir.tar.gz"
-	
-	# [ ! -f "$softDir/redis-$redisVersion.tar.gz" ] \
-	echoInfo "downloading redis-$redisVersion.tar.gz"
-	wget -O "$softDir/$redisBall" -c "http://download.redis.io/releases/$redisBall"
-	[ $? -ne 0 ] && echo "doanload $redisBall failed" && exit 1
-	cd "$softDir"
-	tar -zxf "$redisBall"
-	cd "$redisSrcDir"
-	make && cd src && make install PREFIX="$redisRoot"
-	[ $? -ne 0 ] && echoError 'make redis failed' && exit 1
-	[ ! -d "$redisRoot/conf" ] && echo "mkdir $redisRoot/conf" && mkdir "$redisRoot/conf"
-	cp ../redis.conf "$redisRoot/conf"
-	echo 'make soft link for redis commands in /usr/local/bin'
-	for i in `ls $redisRoot/bin`; do
-		ln -s "$redisRoot/bin/$i" "/usr/local/bin/$i"
-	done
+	[ ! -d "$redisRoot" ] && echo "creating dir: $redisRoot" && mkdir -p "$redisRoot"
 
-	cd $startDir
-fi
-"$redisRoot/bin/redis-server -v"
+	if ! isCmdExist "$redisRoot/bin/redis-server"; then
+		redisVersion=`getProperty $appConf redisVersion`
+		if [ $? -ne 0 ]; then
+			redisVersion=4.0.11
+			echoWarn "redisVersion is not set, using defaults: $redisVersion"
+		else
+			echoInfo "Config: redisVersion=$redisVersion"
+		fi
+		redisSrcDir="redis-$redisVersion"
+		redisBall="$redisSrcDir.tar.gz"
+		
+		# [ ! -f "$softDir/redis-$redisVersion.tar.gz" ] \
+		echoInfo "downloading redis-$redisVersion.tar.gz"
+		wget -O "$softDir/$redisBall" -c "http://download.redis.io/releases/$redisBall"
+		[ $? -ne 0 ] && echo "doanload $redisBall failed" && exit 1
+		cd "$softDir"
+		tar -zxf "$redisBall"
+		cd "$redisSrcDir"
+		make && cd src && make install PREFIX="$redisRoot"
+		[ $? -ne 0 ] && echoError 'make redis failed' && exit 1
+		[ ! -d "$redisRoot/conf" ] && echo "mkdir $redisRoot/conf" && mkdir "$redisRoot/conf"
+		cp ../redis.conf "$redisRoot/conf"
+		echo 'make soft link for redis commands in /usr/local/bin'
+		for i in `ls $redisRoot/bin`; do
+			ln -s "$redisRoot/bin/$i" "/usr/local/bin/$i"
+		done
+
+		cd $startDir
+	else
+		echoInfo "redis is already installed"
+	fi
+	"$redisRoot"/bin/redis-server -v
+}
+installRedis
+
