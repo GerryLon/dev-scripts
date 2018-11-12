@@ -168,6 +168,7 @@ if ! isCmdExist "$redisRoot/bin/redis-server"; then
 	tar -zxf "$redisBall"
 	cd "$redisSrcDir"
 	make && cd src && make install PREFIX="$redisRoot"
+	[ $? -ne 0 ] && echoError 'make redis failed' && exit 1
 	[ ! -d "$redisRoot/conf" ] && echo "mkdir $redisRoot/conf" && mkdir "$redisRoot/conf"
 	cp ../redis.conf "$redisRoot/conf"
 	echo 'make soft link for redis commands in /usr/local/bin'
@@ -177,10 +178,4 @@ if ! isCmdExist "$redisRoot/bin/redis-server"; then
 
 	cd $startDir
 fi
-
-
-
-
-
-
-
+"$redisRoot/bin/redis-server -v"

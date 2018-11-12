@@ -3,8 +3,8 @@
 # Usage:
 # getProperty propertiFile key
 function getProperty() {
-	if [ $# -ne 2 ]; then
-		echo 'Usage: getProperty propertiFile key'
+	if [ $# -lt 2 ]; then
+		echo 'Usage: getProperty propertiFile key [defaultValue]'
 		return 1
 	fi
 
@@ -21,6 +21,9 @@ function getProperty() {
 	# echo "val is: $val"
 	if [ -n "$val" ]; then
 		echo -n "$val"
+		return 0
+	elif [ -n "$3" ]; then # defaultValue
+		echo -n "$3"
 		return 0
 	else
 		return 3
@@ -53,4 +56,4 @@ function setProperty() {
 	return $?
 }
 
-# setProperty $1 $2 $3
+# getProperty $1 $2 $3
