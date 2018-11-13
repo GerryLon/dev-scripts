@@ -248,7 +248,11 @@ function installNginx() {
 	local nginxRoot=`getProperty $appConf nginxRoot /usr/local/nginx`
 	local nginxBall="nginx-$nginxVersion.tar.gz"
 	
-	[ -x $nginxRoot/sbin/nginx ] && echoInfo 'nginx is already installed' && return 0
+	if [ -x $nginxRoot/sbin/nginx ]; then
+		echoInfo 'nginx is already installed'
+		$nginxRoot/sbin/nginx -v
+		return 0
+	fi
 
 	echoInfo "installing nginx"
 

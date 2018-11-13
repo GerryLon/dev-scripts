@@ -63,6 +63,14 @@ else
 	echoWarn 'docker is not installed'
 fi
 
-
-
-
+# start nginx
+nginxCmd=`getProperty $appConf nginxRoot`/sbin/nginx
+if [ -x $nginxCmd ]; then
+	ps -ef | grep nginx | grep -v grep
+	if [ $? -eq 0 ]; then
+		echoInfo 'nginx is running'
+	else
+		echoInfo 'start nginx'
+		$nginxCmd
+	fi
+fi
