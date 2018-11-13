@@ -40,11 +40,15 @@ fi
 # install sys tools 
 function installSystools() {
 	local systools=""
-	for i in man strace vim gcc lsof; do
-		if ! isCmdExist "$i"; then
-			systools="$systools $i"	
+	local systoolsFromConf=`getProperty $appConf systools`
+	local systoolsArr=(${systoolsFromConf//,/ }) # split by , to array
+	for i in "${!systoolsArr[@]}"; do
+		# if ! isCmdExist "${systoolsArr[i]}"; then
+		rpm -qa | grep -q "${systoolsArr[i]}"
+		if [ $? -ne 0 ]; then
+			systools="$systools ${systoolsArr[i]}"
 		else
-			echoInfo "$i was already installed"
+			echoInfo "${systoolsArr[i]} was already installed"
 		fi
 	done
 	if [ -n "$systools" ]; then
@@ -169,7 +173,7 @@ function installRedis() {
 		return
 	fi
 
-	redisRoot=`getProperty $appConf redisRoot`
+	local redisRoot=`getProperty $appConf redisRoot`
 	# redisRoot=${redisRoot:-'/usr/local/redis'} # redis root default value	
 	if [ $? -ne 0 ]; then
 		redisRoot=/usr/local/redis
@@ -208,7 +212,7 @@ function installRedis() {
 
 		cd $startDir
 	else
-		echoInfo "redis is already installed"
+		echoInfo "redis was already installed"
 	fi
 	"$redisRoot"/bin/redis-server -v
 }
@@ -230,7 +234,7 @@ function installDocker() {
 		local dockerStartOnBoot=$(getProperty $appConf dockerStartOnBoot)
 		[ "x$dockerStartOnBoot" == "x1" ] && echo "Config: dockerStartOnBoot=1" && chkconfig docker on && chkconfig --list
 	else
-		echoInfo 'docker is already installed, version:'
+		echoInfo 'docker was already installed, version:'
 		docker version && echo
 	fi
 	return $?
@@ -249,7 +253,7 @@ function installNginx() {
 	local nginxBall="nginx-$nginxVersion.tar.gz"
 	
 	if [ -x $nginxRoot/sbin/nginx ]; then
-		echoInfo 'nginx is already installed'
+		echoInfo 'nginx was already installed'
 		$nginxRoot/sbin/nginx -v
 		return 0
 	fi
@@ -281,6 +285,7 @@ function installNginx() {
 	
 	echoInfo "install nginx success"
 	$nginxRoot/sbin/nginx -v
+	cd $startDir
 	return 0
 }
 installNginx
