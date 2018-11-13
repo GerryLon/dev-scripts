@@ -40,7 +40,7 @@ fi
 # install sys tools 
 function installSystools() {
 	local systools=""
-	for i in man strace vim gcc; do
+	for i in man strace vim gcc lsof; do
 		if ! isCmdExist "$i"; then
 			systools="$systools $i"	
 		else
@@ -65,8 +65,8 @@ set shiftwidth=4
 installSystools
 
 function installGit() {
-	local gitFlag=$(getProperty $appConf git)
-	if [ "x$gitFlag" != "x1" ]; then
+	local installFlag=$(getProperty $appConf git)
+	if [ "x$installFlag" != "x1" ]; then
 		echoWarn "you do not wanna install git"
 		return
 	fi
@@ -115,8 +115,8 @@ function installGit() {
 installGit
 
 function installGo() {
-	local goFlag=$(getProperty $appConf go)
-	if [ "x$goFlag" != "x1" ]; then
+	local installFlag=$(getProperty $appConf go)
+	if [ "x$installFlag" != "x1" ]; then
 		echoWarn "you do not wanna install golang"
 		return
 	fi
@@ -163,8 +163,8 @@ export PATH=\$PATH:\$GOROOT/bin:\${GOPATH//://bin:}/bin" >> $etcProfile
 installGo
 
 function installRedis() {
-	redisFlag=$(getProperty $appConf redis)
-	if [ "x$redisFlag" != "x1" ]; then
+	local installFlag=$(getProperty $appConf redis)
+	if [ "x$installFlag" != "x1" ]; then
 		echoWarn "you do not wanna install redis"
 		return
 	fi
@@ -236,4 +236,48 @@ function installDocker() {
 	return $?
 }
 installDocker
+
+function installNginx() {
+	local installFlag=$(getProperty $appConf nginx)
+	if [ "x$installFlag" != "x1" ]; then
+		echoWarn "you do not wanna install nginx"
+		return
+	fi
+
+	local nginxVersion=`getProperty $appConf nginxVersion 1.14.1`
+	local nginxRoot=`getProperty $appConf nginxRoot /usr/local/nginx`
+	local nginxBall="nginx-$nginxVersion.tar.gz"
+	
+	[ -x $nginxRoot/sbin/nginx ] && echoInfo 'nginx is already installed' && return 0
+
+	echoInfo "installing nginx"
+
+	wget -O "$softDir/$nginxBall" -c "http://nginx.org/download/$nginxBall"
+	cd "$softDir"
+	tar -zxf $nginxBall
+	
+	local pcreBall="pcre-8.42.tar.gz"
+	wget -O "$softDir/$pcreBall" -c "https://ftp.pcre.org/pub/pcre/$pcreBall" \
+		&& tar -zxf "$pcreBall" \
+		|| echoError "doanload $pcreBall failed"
+	
+	local zlibBall="zlib-1.2.11.tar.gz"
+	wget -O "$softDir/$zlibBall" -c "http://zlib.net/$zlibBall" \
+		&& tar -zxf "$zlibBall" \
+		|| echoError "doanload $zlibBall failed"
+
+	cd "$softDir/nginx-$nginxVersion"
+	./configure --prefix=$nginxRoot \
+		--with-pcre=$softDir/pcre-8.42 \
+		--with-zlib=$softDir/zlib-1.2.11
+	
+	make && make install
+	
+	[ $? -ne 0 ] && echoError "install nginx failed" && return 1
+	
+	echoInfo "install nginx success"
+	$nginxRoot/sbin/nginx -v
+	return 0
+}
+installNginx
 
