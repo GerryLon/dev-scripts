@@ -64,44 +64,6 @@ set shiftwidth=4
 }
 installSystools
 
-# mount windows dir
-function mountWorkspace() {
-	mountFlag=`getProperty $appConf mount`
-	if [ "x$mountFlag" != "x1" ]; then
-		echoWarn "you do not wanna install git"
-		return 1
-	fi
-	
-	mountIp=`getProperty $appConf mountIp`
-	mountUsername=`getProperty $appConf mountUsername gerrylon`
-	mountPassword=`getProperty $appConf mountPassword gerrylon`
-	mountSrcDir=`getProperty $appConf mountSrcDir workspace`
-	mountDstDir=`getProperty $appConf mountDstDir /var/workspace`
-	
-	if ! isValidIp "$mountIp"; then
-		echoError "invalid ip found: $mountIp, please check!"
-		return 1
-	fi
-
-	df -h | grep -q "$mountDstDir"
-	if [ $? -eq 0 ]; then
-		echoInfo "//$mountIp/$mountSrcDir was already mounted to $mountDstDir"
-		return
-	fi
-	echo "mounting //$mountIp/$mountSrcDir to $mountDstDir"
-	[ ! -d $mountDstDir ] && echoWarn "creating dir: $mountDstDir" && mkdir -p "$mountDstDir"
-	mount -t cifs -o username=$mountUsername,password=$mountPassword,vers=2.0,iocharset=utf8 //$mountIp/$mountSrcDir $mountDstDir
-
-	df -h | grep -q "$mountDstDir"
-	if [ $? -ne 0 ]; then
-		echoError "mount error"
-		return 1
-	fi
-	echoInfo "mount success"
-	return $? 
-}
-mountWorkspace
-
 function installGit() {
 	local gitFlag=$(getProperty $appConf git)
 	if [ "x$gitFlag" != "x1" ]; then
@@ -129,8 +91,10 @@ function installGit() {
 		make prefix=/usr/local all
 		sudo make prefx=/usr/local install
 		cd -
+		
+		git version >/dev/null 2>&1
 
-		if ! git version; then
+		if [ $? -ne 0 ]; then
 			echoError 'install git failed, please check!'
 			exit 1
 		else
@@ -139,6 +103,7 @@ function installGit() {
 	else
 		echoInfo 'git was already installed'
 	fi
+	git version
 	echo 'config git alias'
 	git config --global alias.st "status"
 	git config --global alias.br "branch"
@@ -248,4 +213,27 @@ function installRedis() {
 	"$redisRoot"/bin/redis-server -v
 }
 installRedis
+
+function installDocker() {	
+	local installFlag=$(getProperty $appConf docker)
+	if [ "x$installFlag" != "x1" ]; then
+		echoWarn "you do not wanna install docker"
+		return
+	fi
+	
+	if ! isCmdExist docker; then
+		echoInfo 'installing docker'
+		rpm -Uvh http://ftp.riken.jp/Linux/fedora/epel/6Server/x86_64/epel-release-6-8.noarch.rpm
+		yum install -y docker-io
+		
+		[ $? -ne 0 ] && echoError 'install docker failed' && return 1
+		local dockerStartOnBoot=$(getProperty $appConf dockerStartOnBoot)
+		[ "x$dockerStartOnBoot" == "x1" ] && echo "Config: dockerStartOnBoot=1" && chkconfig docker on && chkconfig --list
+	else
+		echoInfo 'docker is already installed, version:'
+		docker version && echo
+	fi
+	return $?
+}
+installDocker
 
