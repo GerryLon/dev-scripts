@@ -74,3 +74,10 @@ if [ -x $nginxCmd ]; then
 		$nginxCmd
 	fi
 fi
+
+# nptdate cn.pool.ntp.org
+if isCmdExist ntpdate; then
+    echoInfo "sync time..."
+    ntpdate cn.pool.ntp.org
+fi
+

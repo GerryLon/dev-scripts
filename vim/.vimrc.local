@@ -32,8 +32,7 @@ func SetTitle()
         call append(line(".")+7, "#include <unistd.h>")
         call append(line(".")+8, "")
     endif
-    
-    autocmd BufRead * G
+    autocmd BufNewFile * normal G
 
 endfunc
 
