@@ -70,7 +70,7 @@ installSystools
 
 function installGit() {
 	local installFlag=$(getProperty $appConf git)
-	if [ "x$installFlag" != "x1" ]; then
+	if [ "$installFlag" != "1" ]; then
 		echoWarn "you do not wanna install git"
 		return
 	fi
@@ -120,7 +120,7 @@ installGit
 
 function installGo() {
 	local installFlag=$(getProperty $appConf go)
-	if [ "x$installFlag" != "x1" ]; then
+	if [ "$installFlag" != "1" ]; then
 		echoWarn "you do not wanna install golang"
 		return
 	fi
@@ -168,7 +168,7 @@ installGo
 
 function installRedis() {
 	local installFlag=$(getProperty $appConf redis)
-	if [ "x$installFlag" != "x1" ]; then
+	if [ "$installFlag" != "1" ]; then
 		echoWarn "you do not wanna install redis"
 		return
 	fi
@@ -220,7 +220,7 @@ installRedis
 
 function installDocker() {	
 	local installFlag=$(getProperty $appConf docker)
-	if [ "x$installFlag" != "x1" ]; then
+	if [ "$installFlag" != "1" ]; then
 		echoWarn "you do not wanna install docker"
 		return
 	fi
@@ -232,7 +232,7 @@ function installDocker() {
 		
 		[ $? -ne 0 ] && echoError 'install docker failed' && return 1
 		local dockerStartOnBoot=$(getProperty $appConf dockerStartOnBoot)
-		[ "x$dockerStartOnBoot" == "x1" ] && echo "Config: dockerStartOnBoot=1" && chkconfig docker on && chkconfig --list
+		[ "$dockerStartOnBoot" == "1" ] && echo "Config: dockerStartOnBoot=1" && chkconfig docker on && chkconfig --list
 	else
 		echoInfo 'docker was already installed, version:'
 		docker version && echo
@@ -243,7 +243,7 @@ installDocker
 
 function installNginx() {
 	local installFlag=$(getProperty $appConf nginx)
-	if [ "x$installFlag" != "x1" ]; then
+	if [ "$installFlag" != "1" ]; then
 		echoWarn "you do not wanna install nginx"
 		return
 	fi
