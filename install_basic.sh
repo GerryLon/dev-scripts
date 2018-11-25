@@ -290,3 +290,45 @@ function installNginx() {
 }
 installNginx
 
+function installMysql() {
+	local installFlag=$(getProperty $appConf mysql)
+	if [ "$installFlag" != "1" ]; then
+		echoWarn "you do not wanna install mysql"
+		return
+	fi
+
+    local mysqlServerBall='MySQL-server-5.5.62-1.el6.x86_64.rpm'
+    local mysqlClientBall='MySQL-client-5.5.62-1.el6.x86_64.rpm'
+    wget -O "$softDir/$mysqlServerBall" -c "https://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlServerBall"
+    wget -O "$softDir/$mysqlClientBall" -c "https://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlClientBall"
+    yum remove -y mysql*
+    cd $softDir
+    
+    if rpm -qa | grep  MySQL-server; then
+        echo 'mysql server was already installed'
+    else
+        echoInfo "installing mysql server"
+        yum -y localinstall $mysqlServerBall
+        [ $? -ne 0 ] && echoError "install mysql server failed" && return 1
+    fi
+
+    if rpm -qa | grep  -q MySQL-client; then
+        echo 'mysql client was already installed'
+    else
+        echoInfo "installing mysql client"
+        yum -y localinstall $mysqlClientBall
+        [ $? -ne 0 ] && echoError "install mysql client failed" && return 1
+    fi
+
+    echoInfo "install mysql success"
+    cd $startDir
+
+    local mysqlPassword=`getProperty $appConf mysqlPassword`
+    
+    echoInfo "set mysql password"
+    service mysql restart && mysqladmin -uroot password $mysqlPassword
+    [ $? -eq 0 ] && echoInfo "set mysql password success" || echo "set mysql password failed!"
+}
+installMysql
+
+

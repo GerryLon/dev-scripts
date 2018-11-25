@@ -75,9 +75,21 @@ if [ -x $nginxCmd ]; then
 	fi
 fi
 
+# start mysql
+if isCmdExist mysql; then
+    ps -ef | grep mysql | grep -v grep
+
+    if [ $? -eq 0  ]; then
+        echoInfo 'mysql is already running'
+    else
+        service mysql restart
+    fi
+fi
+
 # nptdate cn.pool.ntp.org
 if isCmdExist ntpdate; then
     echoInfo "sync time..."
     ntpdate cn.pool.ntp.org
 fi
+
 
