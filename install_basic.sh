@@ -37,7 +37,7 @@ else
 	echoInfo 'aliyun yum repository was already installed'
 fi
 
-# install sys tools 
+# install sys tools
 function installSystools() {
 	local systools=""
 	local systoolsFromConf=`getProperty $appConf systools`
@@ -74,7 +74,7 @@ function installGit() {
 		echoWarn "you do not wanna install git"
 		return
 	fi
-	
+
 	# install git
 	if ! isCmdExist git; then
 		echoInfo 'installing git ...'
@@ -296,6 +296,17 @@ function installMysql() {
 		echoWarn "you do not wanna install mysql"
 		return
 	fi
+   
+    if isCmdExist mysql; then
+        echoInfo "mysql was already installed"
+        return 0
+    fi
+
+    ps -ef | grep mysql | grep -v grep
+    if [ $? -eq 0 ]; then
+        echoInfo "mysql is running..."
+        return 0
+    fi
 
     local mysqlServerBall='MySQL-server-5.5.62-1.el6.x86_64.rpm'
     local mysqlClientBall='MySQL-client-5.5.62-1.el6.x86_64.rpm'
@@ -331,4 +342,36 @@ function installMysql() {
 }
 installMysql
 
+function installNodejs() {
+	local installFlag=$(getProperty $appConf nodejs)
+	if [ "$installFlag" != "1" ]; then
+		echoWarn "you do not wanna install nodejs"
+		return
+	fi
+    
+    local nodejsVersion=$(getProperty $appConf nodejsVersion)
+    local nodejsRoot=$(getProperty $appConf nodejsRoot)
 
+    if isCmdExist node; then
+        echoInfo "nodejs was already installed"
+        node -v
+        return 0
+    fi
+
+    local nodejsBall="node-v$nodejsVersion-linux-x64.tar.xz"
+    wget -O "$softDir/$nodejsBall" -c "https://nodejs.org/dist/v$nodejsVersion/$nodejsBall"
+
+    cd $softDir && tar -xJf $nodejsBall
+    test -d $nodejsRoot || mkdir $nodejsRoot
+    cp -rf "node-v$nodejsVersion-linux-x64"/* $nodejsRoot
+
+    # create symbol link for nodejs relative command: node npm etc.
+    for i in `ls $nodejsRoot/bin`; do
+        test -x "$nodejsRoot/bin/$i" && ln -sf "$nodejsRoot/bin/$i" "/usr/local/bin/$i"
+    done
+
+    node -v
+    echoInfo "install nodejs success"
+    cd $startDir
+}
+installNodejs
