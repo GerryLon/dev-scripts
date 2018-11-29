@@ -353,8 +353,7 @@ function installNodejs() {
     local nodejsRoot=$(getProperty $appConf nodejsRoot)
 
     if isCmdExist node; then
-        echoInfo "nodejs was already installed"
-        node -v
+        echoInfo "nodejs was already installed, version: `node -v`"
         return 0
     fi
 
@@ -363,15 +362,57 @@ function installNodejs() {
 
     cd $softDir && tar -xJf $nodejsBall
     test -d $nodejsRoot || mkdir $nodejsRoot
-    cp -rf "node-v$nodejsVersion-linux-x64"/* $nodejsRoot
+    # cp -rf "node-v$nodejsVersion-linux-x64"/* $nodejsRoot
+    mv "node-v$nodejsVersion-linux-x64" $nodejsRoot
 
     # create symbol link for nodejs relative command: node npm etc.
     for i in `ls $nodejsRoot/bin`; do
         test -x "$nodejsRoot/bin/$i" && ln -sf "$nodejsRoot/bin/$i" "/usr/local/bin/$i"
     done
 
-    node -v
     echoInfo "install nodejs success"
+    node -v
     cd $startDir
 }
 installNodejs
+
+function installMongodb() {
+    local soft=mongodb
+	local installFlag=$(getProperty $appConf $soft)
+	if [ "$installFlag" != "1" ]; then
+		echoWarn "you do not wanna install $soft"
+		return
+	fi
+    
+    local mongodbVersion=$(getProperty $appConf mongodbVersion)
+    local mongodbRoot=$(getProperty $appConf mongodbRoot)
+    local mongodbDataDir=$(getProperty $appConf mongodbDataDir)
+
+    local mainCmd=`selectCmd mongo "$mongodbRoot/bin/mongo"`
+
+    if [ -n "$mainCmd" ]; then
+        echo "$soft was already installed"
+        return 0
+    fi
+    
+    local softBall="mongodb-linux-x86_64-$mongodbVersion.tgz"
+    wget -O "$softDir/$softBall" -c "https://fastdl.mongodb.org/linux/$softBall"
+
+    cd $softDir && tar -xzf $softBall
+    mv "mongodb-linux-x86_64-$mongodbVersion" "$mongodbRoot"
+
+    # soft link, optional
+    for i in `ls $mongodbRoot/bin`; do
+        test -x "$mongodbRoot/bin/$i" && ln -sf "$mongodbRoot/bin/$i" "/usr/local/bin/$i"
+    done
+
+    if ps -ef | grep -q mongo | grep -v grep; then
+        echo "$soft is running"
+        return 0
+    fi
+
+    # --syslog:log will be write to /var/log/message
+    # --fork daemon mode running
+    sh -c "$mongodbRoot/bin/mongod --dbpath=$mongodbDataDir --syslog --fork"
+}
+installMongodb

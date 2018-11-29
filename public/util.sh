@@ -19,6 +19,27 @@ function isCmdExist() {
 	return 2
 }
 
+# nginx or /usr/local/nginx/sbin/nginx or more
+# if one of given command is executable, return it, or return null
+function selectCmd() {
+    local realCmd=
+
+    for i in "$@"; do
+        if isCmdExist $i; then
+            echo "test33: $i"
+            realCmd=$i
+            break
+        fi
+    done
+
+    echo $realCmd
+
+    if [ -z $realCmd ]; then
+        return 1;
+    fi
+    return 0
+}
+
 # check ipv4
 function isValidIp() {
 	local ip=$1

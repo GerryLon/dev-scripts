@@ -12,5 +12,11 @@ if isCmdExist xxx; then
 	exit 1
 fi
 
+
+mongodbRoot="/usr/local/mongodb"
+
+realCmd=`selectCmd mongo "$mongodbRoot/bin/mongo"`
+echo $?
+echo $realCmd
 # nothing output is OK
 
