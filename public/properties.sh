@@ -16,7 +16,7 @@ function getProperty() {
 		return 2
 	fi
 
-	local val=$(cat "$propFile" | grep -vE  '^$' | grep -vE '^\s*#' | grep "$key\s*=" | awk -F '=' '{print $2}' | sed 's/^\s*\|\s*$//g')
+	local val=$(cat "$propFile" | grep -vE  '^$' | grep -vE '^\s*#' | grep "$key\s*=" | awk -F '=' '{print $2}' | sed -r 's/^\s*|\s*#.*$//g')
 	
 	# echo "val is: $val"
 	if [ -n "$val" ]; then

@@ -44,12 +44,13 @@ function installSystools() {
 	local systoolsArr=(${systoolsFromConf//,/ }) # split by , to array
 	for i in "${!systoolsArr[@]}"; do
 		# if ! isCmdExist "${systoolsArr[i]}"; then
-		rpm -qa | grep -q "${systoolsArr[i]}"
-		if [ $? -ne 0 ]; then
+		# rpm -qa | grep -q "${systoolsArr[i]}"
+		# if [ $? -ne 0 ]; then
+        # like libgcc will cause judge gcc failed
 			systools="$systools ${systoolsArr[i]}"
-		else
-			echoInfo "${systoolsArr[i]} was already installed"
-		fi
+		# else
+		# 	echoInfo "${systoolsArr[i]} was already installed"
+		# fi
 	done
 	if [ -n "$systools" ]; then
 		echoInfo "installing $systools"
@@ -416,3 +417,21 @@ function installMongodb() {
     sh -c "$mongodbRoot/bin/mongod --dbpath=$mongodbDataDir --syslog --fork"
 }
 installMongodb
+
+function installVimPlugins() {
+    local soft=vimPlugins
+	local installFlag=$(getProperty $appConf $soft)
+	if [ "$installFlag" != "1" ]; then
+		echoWarn "you do not wanna install $soft"
+		return
+	fi
+
+    # sh -c "$startDir/public/vim_bootstrap.sh"
+    cd $startDir
+    wget -c -O "$startDir/bootstrap.sh" https://raw.githubusercontent.com/GerryLon/spf13-vim/gerrylon_dev/bootstrap.sh
+    chmod u+x "$startDir/bootstrap.sh"
+    $startDir/bootstrap.sh
+    cd $startDir
+}
+installVimPlugins
+
