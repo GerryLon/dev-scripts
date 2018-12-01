@@ -80,6 +80,9 @@ function installGit() {
 		echoInfo 'installing git ...'
 		# kernel dependency
 		yum install -y curl-devel expat-devel gettext-devel openssl-devel zlib-devel
+		
+		# avoid "tclsh failed; using unoptimized loading"
+		yum install -y tcl build-essential tk gettext
 
 		# install from source code,will cause error, should install below
 		yum install -y perl-ExtUtils-CBuilder perl-ExtUtils-MakeMaker
@@ -363,7 +366,7 @@ function installNodejs() {
     cd $softDir && tar -xJf $nodejsBall
     test -d $nodejsRoot || mkdir $nodejsRoot
     # cp -rf "node-v$nodejsVersion-linux-x64"/* $nodejsRoot
-    mv "node-v$nodejsVersion-linux-x64" $nodejsRoot
+    mv "$softDir/node-v$nodejsVersion-linux-x64" $nodejsRoot
 
     # create symbol link for nodejs relative command: node npm etc.
     for i in `ls $nodejsRoot/bin`; do
