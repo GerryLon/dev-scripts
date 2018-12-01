@@ -7,9 +7,9 @@ scriptDir=$(cd `dirname $0`; pwd)
 . "$scriptDir/public/index.sh"
 
 etcProfile='/etc/profile'
-softDir=/opt
 startDir=`pwd`
 appConf="$scriptDir/app.properties"
+softDir=`getProperty $appConf softDir`
 
 if [ $UID -ne 0 ]; then
 	echoInfo 'You are not root user'
@@ -87,17 +87,14 @@ function installGit() {
 		# install from source code,will cause error, should install below
 		yum install -y perl-ExtUtils-CBuilder perl-ExtUtils-MakeMaker
 		
-		# uncompress git-x.y.z.tar.gz
-		yum install -y xz
-
 		gitBall='git-2.3.9.tar.xz'
 		
 		wget -O "$softDir/$gitBall" -c "https://mirrors.edge.kernel.org/pub/software/scm/git/$gitBall"
-		tar -C "$softDir" -xJf "$softDir/$gitBall"
+		cd $softDir && tar -xJf "$gitBall"
 		cd "$softDir/git-2.3.9"
 		make prefix=/usr/local all
 		sudo make prefx=/usr/local install
-		cd -
+		cd $startDir
 		
 		git version >/dev/null 2>&1
 
@@ -365,8 +362,8 @@ function installNodejs() {
 
     cd $softDir && tar -xJf $nodejsBall
     test -d $nodejsRoot || mkdir $nodejsRoot
-    # cp -rf "node-v$nodejsVersion-linux-x64"/* $nodejsRoot
-    mv "$softDir/node-v$nodejsVersion-linux-x64" $nodejsRoot
+    cp -rfu "node-v$nodejsVersion-linux-x64"/* $nodejsRoot
+    # mv "$softDir/node-v$nodejsVersion-linux-x64" $nodejsRoot
 
     # create symbol link for nodejs relative command: node npm etc.
     for i in `ls $nodejsRoot/bin`; do
