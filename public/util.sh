@@ -96,3 +96,18 @@ function echoWarn() {
 	
 	echo -e "\033[43;31m$text\033[0m"
 }
+
+# make soft link force for all execute files with given dir
+function lnsfFiles() {
+    local sourceDir="$1"
+    local targetDir="$2"
+
+    if [ ! -d $dir ]; then
+        return 1
+    fi
+
+    for i in `ls $sourceDir`; do
+        ln -sf "$sourceDir/$i" "$targetDir/$i"
+    done
+}
+

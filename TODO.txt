@@ -1,1 +1,0 @@
-# git bin or other files will be placed to /root 

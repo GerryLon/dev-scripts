@@ -44,13 +44,12 @@ function installSystools() {
 	local systoolsArr=(${systoolsFromConf//,/ }) # split by , to array
 	for i in "${!systoolsArr[@]}"; do
 		# if ! isCmdExist "${systoolsArr[i]}"; then
-		# rpm -qa | grep -q "${systoolsArr[i]}"
-		# if [ $? -ne 0 ]; then
-        # like libgcc will cause judge gcc failed
+		rpm -q "${systoolsArr[i]}"
+		if [ $? -ne 0 ]; then
 			systools="$systools ${systoolsArr[i]}"
-		# else
-		# 	echoInfo "${systoolsArr[i]} was already installed"
-		# fi
+		else
+			echoInfo "${systoolsArr[i]} was already installed"
+		fi
 	done
 	if [ -n "$systools" ]; then
 		echoInfo "installing $systools"
@@ -70,11 +69,15 @@ set shiftwidth=4
 installSystools
 
 function installGit() {
-	local installFlag=$(getProperty $appConf git)
+    local soft=git
+    local installFlag=$(getProperty $appConf $soft)
 	if [ "$installFlag" != "1" ]; then
-		echoWarn "you do not wanna install git"
+		echoWarn "you do not wanna install $soft"
 		return
 	fi
+    
+    local gitVersion=$(getProperty $appConf gitVersion)
+    local gitRoot=$(getProperty $appConf gitRoot)
 
 	# install git
 	if ! isCmdExist git; then
@@ -88,23 +91,30 @@ function installGit() {
 		# install from source code,will cause error, should install below
 		yum install -y perl-ExtUtils-CBuilder perl-ExtUtils-MakeMaker
 		
-		gitBall='git-2.3.9.tar.xz'
+		local gitBall="git-$gitVersion.tar.xz"
 		
-		wget -O "$softDir/$gitBall" -c "https://mirrors.edge.kernel.org/pub/software/scm/git/$gitBall"
-		cd $softDir && tar -xJf "$gitBall"
-		cd "$softDir/git-2.3.9"
-		make prefix=/usr/local all
-		sudo make prefx=/usr/local install
-		cd $startDir
-		
-		git version >/dev/null 2>&1
+        wget -O "$softDir/$gitBall" -c "https://mirrors.edge.kernel.org/pub/software/scm/git/$gitBall"
+        cd $softDir && tar -xJf "$gitBall"
+        cd "$softDir/git-$gitVersion"
+        ./configure --prefix="$gitRoot"
+        make all
+        make install
+        
+        if [ $? -ne 0 ]; then
+            echoWarn "install $soft failed!!!"
+            return
+        fi
 
+        lnsfFiles "$gitRoot/bin" "/usr/local/bin"
+		git version >/dev/null 2>&1
+		
 		if [ $? -ne 0 ]; then
 			echoError 'install git failed, please check!'
-			exit 1
+            return 1
 		else
 			echoInfo 'install git success'
 		fi
+        cd $startDir
 	else
 		echoInfo 'git was already installed'
 	fi
