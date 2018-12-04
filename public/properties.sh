@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Usage:
-# getProperty propertiFile key
+# getProperty propertiFile key [defaultValue]
 function getProperty() {
 	if [ $# -lt 2 ]; then
 		echo 'Usage: getProperty propertiFile key [defaultValue]'
