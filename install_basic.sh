@@ -445,3 +445,17 @@ function installVimPlugins() {
 }
 installVimPlugins
 
+function startServicesOnBoot() {
+    local startOnBoot=`getProperty $appConf startServicesOnBoot`
+    if [ "$startOnBoot" != '1'  ]; then
+        echoWarn 'startServicesOnBoot disabled'
+        return 1
+    fi
+
+    grep -q "$scriptDir/start_services.sh" /etc/rc.local
+
+    if [ $? -ne 0  ]; then
+        echo "[ -x $scriptDir/start_services.sh ] && $scriptDir/start_services.sh || echo \"start_services failed at \`date +'%Y-%m-%d %H:%M.%S'\`\" >> /var/log/start_services.log" >> /etc/rc.local
+    fi
+}
+startServicesOnBoot
