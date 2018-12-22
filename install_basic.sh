@@ -5,11 +5,31 @@ scriptDir=$(cd `dirname $0`; pwd)
 
 # import public scripts
 . "$scriptDir/public/index.sh"
-
+appName="${0##*[\\/]}" # xx.sh
+appName=(${appName//\./ })
+logFile="$scriptDir/${appName[0]}"".log" # xx.log
 etcProfile='/etc/profile'
 startDir=`pwd`
 appConf="$scriptDir/app.properties"
 softDir=`getProperty $appConf softDir`
+
+rm -rf $logFile
+echoInfo "install log will be set at:"
+echoInfo "$logFile"
+echo
+
+# write log to $logFile when install soft
+function appLog() {
+    log $1 $logFile
+}
+
+function failedAppLog() {
+    log "failed: $1" $logFile
+}
+
+function successAppLog() {
+    log "success: $1" $logFile
+}
 
 if [ $UID -ne 0 ]; then
 	echoInfo 'You are not root user'
@@ -109,6 +129,7 @@ function installGit() {
 		git version >/dev/null 2>&1
 		
 		if [ $? -ne 0 ]; then
+            failedAppLog "install git"
 			echoError 'install git failed, please check!'
             return 1
 		else
@@ -165,6 +186,7 @@ export PATH=\$PATH:\$GOROOT/bin:\${GOPATH//://bin:}/bin" >> $etcProfile
 		go version >/dev/null 2>&1
 
 		if [ $? -ne 0 ]; then
+            failedAppLog "install go"
 			echoError 'install golang failed, please check!'
 			exit 1
 		else
@@ -208,12 +230,12 @@ function installRedis() {
 		# [ ! -f "$softDir/redis-$redisVersion.tar.gz" ] \
 		echoInfo "downloading redis-$redisVersion.tar.gz"
 		wget -O "$softDir/$redisBall" -c "http://download.redis.io/releases/$redisBall"
-		[ $? -ne 0 ] && echo "doanload $redisBall failed" && exit 1
+	 	[ $? -ne 0 ] && echo "download $redisBall failed" && failedAppLog "download $redisBall" && exit 1
 		cd "$softDir"
 		tar -zxf "$redisBall"
 		cd "$redisSrcDir"
 		make && cd src && make install PREFIX="$redisRoot"
-		[ $? -ne 0 ] && echoError 'make redis failed' && exit 1
+		[ $? -ne 0 ] && echoError 'make redis failed' && failedAppLog "make redis" && exit 1
 		[ ! -d "$redisRoot/conf" ] && echo "mkdir $redisRoot/conf" && mkdir "$redisRoot/conf"
 		cp ../redis.conf "$redisRoot/conf"
 		echo 'make soft link for redis commands in /usr/local/bin'
@@ -221,6 +243,7 @@ function installRedis() {
 			ln -s "$redisRoot/bin/$i" "/usr/local/bin/$i"
 		done
 
+		echoInfo 'install redis success'
 		cd $startDir
 	else
 		echoInfo "redis was already installed"
@@ -241,7 +264,7 @@ function installDocker() {
 		rpm -Uvh http://ftp.riken.jp/Linux/fedora/epel/6Server/x86_64/epel-release-6-8.noarch.rpm
 		yum install -y docker-io
 		
-		[ $? -ne 0 ] && echoError 'install docker failed' && return 1
+		[ $? -ne 0 ] && echoError 'install docker failed' && failedAppLog "install docker"  && exit 1
 		local dockerStartOnBoot=$(getProperty $appConf dockerStartOnBoot)
 		[ "$dockerStartOnBoot" == "1" ] && echo "Config: dockerStartOnBoot=1" && chkconfig docker on && chkconfig --list
 	else
@@ -278,12 +301,12 @@ function installNginx() {
 	local pcreBall="pcre-8.42.tar.gz"
 	wget -O "$softDir/$pcreBall" -c "https://ftp.pcre.org/pub/pcre/$pcreBall" \
 		&& tar -zxf "$pcreBall" \
-		|| echoError "doanload $pcreBall failed"
+		|| echoError "doanload $pcreBall failed" && failedAppLog "download $pcreBall"
 	
 	local zlibBall="zlib-1.2.11.tar.gz"
 	wget -O "$softDir/$zlibBall" -c "http://zlib.net/$zlibBall" \
 		&& tar -zxf "$zlibBall" \
-		|| echoError "doanload $zlibBall failed"
+		|| echoError "doanload $zlibBall failed" && failedAppLog "download $zlibBall"
 
 	cd "$softDir/nginx-$nginxVersion"
 	./configure --prefix=$nginxRoot \
@@ -292,7 +315,7 @@ function installNginx() {
 	
 	make && make install
 	
-	[ $? -ne 0 ] && echoError "install nginx failed" && return 1
+	[ $? -ne 0 ] && echoError "install nginx failed" && failedAppLog "install nginx"  && exit 1
 	
 	echoInfo "install nginx success"
 	$nginxRoot/sbin/nginx -v
@@ -321,8 +344,10 @@ function installMysql() {
 
     local mysqlServerBall='MySQL-server-5.5.62-1.el6.x86_64.rpm'
     local mysqlClientBall='MySQL-client-5.5.62-1.el6.x86_64.rpm'
-    wget -O "$softDir/$mysqlServerBall" -c "https://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlServerBall"
-    wget -O "$softDir/$mysqlClientBall" -c "https://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlClientBall"
+    wget -O "$softDir/$mysqlServerBall" -c "https://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlServerBall" \
+        || echoInfo "download $mysqlServerBall failed" && failedAppLog "download $mysqlServerBall" && exit 1
+    wget -O "$softDir/$mysqlClientBall" -c "https://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlClientBall" \
+        || echoInfo "download $mysqlClientBall failed" && failedAppLog "download $mysqlClientBall" && exit 1
     yum remove -y mysql*
     cd $softDir
     
@@ -331,7 +356,8 @@ function installMysql() {
     else
         echoInfo "installing mysql server"
         yum -y localinstall $mysqlServerBall
-        [ $? -ne 0 ] && echoError "install mysql server failed" && return 1
+        [ $? -ne 0 ] && echoError "install mysql server failed" \
+            && failedAppLog "install mysql server"  && exit 1
     fi
 
     if rpm -qa | grep  -q MySQL-client; then
@@ -339,7 +365,8 @@ function installMysql() {
     else
         echoInfo "installing mysql client"
         yum -y localinstall $mysqlClientBall
-        [ $? -ne 0 ] && echoError "install mysql client failed" && return 1
+        [ $? -ne 0 ] && echoError "install mysql client failed" \
+            && failedAppLog "install mysql client" && exit 1
     fi
 
     echoInfo "install mysql success"
@@ -369,7 +396,9 @@ function installNodejs() {
     fi
 
     local nodejsBall="node-v$nodejsVersion-linux-x64.tar.xz"
-    wget -O "$softDir/$nodejsBall" -c "https://nodejs.org/dist/v$nodejsVersion/$nodejsBall"
+    wget -O "$softDir/$nodejsBall" -c "https://nodejs.org/dist/v$nodejsVersion/$nodejsBall" \
+        || echoError "download $nodejsBall failed" \
+        && failedAppLog "download $nodejsBall" && exit 1
 
     cd $softDir && tar -xJf $nodejsBall
     test -d $nodejsRoot || mkdir $nodejsRoot
@@ -407,7 +436,9 @@ function installMongodb() {
     fi
     
     local softBall="mongodb-linux-x86_64-$mongodbVersion.tgz"
-    wget -O "$softDir/$softBall" -c "https://fastdl.mongodb.org/linux/$softBall"
+    wget -O "$softDir/$softBall" -c "https://fastdl.mongodb.org/linux/$softBall" \
+        || echo "download $softBall" \
+        && failedAppLog "download $softBall" && exit 1
 
     cd $softDir && tar -xzf $softBall
     mv "mongodb-linux-x86_64-$mongodbVersion" "$mongodbRoot"
@@ -438,7 +469,9 @@ function installVimPlugins() {
 
     # sh -c "$startDir/public/vim_bootstrap.sh"
     cd $startDir
-    wget -c -O "$startDir/bootstrap.sh" https://raw.githubusercontent.com/GerryLon/spf13-vim/gerrylon_dev/bootstrap.sh
+    wget -c -O "$startDir/bootstrap.sh" "https://raw.githubusercontent.com/GerryLon/spf13-vim/gerrylon_dev/bootstrap.sh" \
+        || echo "download vim_bootstrap.sh failed" \
+        && failedAppLog "download vim_bootstrap.sh" && exit 1
     chmod u+x "$startDir/bootstrap.sh"
     $startDir/bootstrap.sh
     cd $startDir
@@ -447,14 +480,14 @@ installVimPlugins
 
 function startServicesOnBoot() {
     local startOnBoot=`getProperty $appConf startServicesOnBoot`
-    if [ "$startOnBoot" != '1'  ]; then
+    if [ "$startOnBoot" != '1' ]; then
         echoWarn 'startServicesOnBoot disabled'
         return 1
     fi
 
     grep -q "$scriptDir/start_services.sh" /etc/rc.local
 
-    if [ $? -ne 0  ]; then
+    if [ $? -ne 0 ]; then
         echo "[ -x $scriptDir/start_services.sh ] && $scriptDir/start_services.sh || echo \"start_services failed at \`date +'%Y-%m-%d %H:%M.%S'\`\" >> /var/log/start_services.log" >> /etc/rc.local
     fi
 }

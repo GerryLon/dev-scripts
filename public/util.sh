@@ -2,6 +2,15 @@
 
 # some utilities for shell scripts
 
+function log() {
+    local msg="$1"
+    local logFile="$2"
+    if [ -z "$msg" ] || [ -z "$logFile" ]; then
+        return 1
+    fi
+	echo "[`date +"%Y-%m-%d %H:%M:%S"]` $msg" >> $logFile
+}
+
 # is a command exists?
 # call like isCmdExist vim
 function isCmdExist() {
