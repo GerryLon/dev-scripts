@@ -427,7 +427,7 @@ function installMongodb() {
     local mongodbVersion=$(getProperty $appConf mongodbVersion)
     local mongodbRoot=$(getProperty $appConf mongodbRoot)
     local mongodbDataDir=$(getProperty $appConf mongodbDataDir)
-
+    
     local mainCmd=`selectCmd mongo "$mongodbRoot/bin/mongo"`
 
     if [ -n "$mainCmd" ]; then
@@ -455,6 +455,7 @@ function installMongodb() {
 
     # --syslog:log will be write to /var/log/message
     # --fork daemon mode running
+    mkdir -p "$mongodbDataDir"
     sh -c "$mongodbRoot/bin/mongod --dbpath=$mongodbDataDir --syslog --fork"
 }
 installMongodb
