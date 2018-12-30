@@ -301,12 +301,12 @@ function installNginx() {
 	local pcreBall="pcre-8.42.tar.gz"
 	wget -O "$softDir/$pcreBall" -c "https://ftp.pcre.org/pub/pcre/$pcreBall" \
 		&& tar -zxf "$pcreBall" \
-		|| echoError "doanload $pcreBall failed" && failedAppLog "download $pcreBall"
+		|| { echoError "doanload $pcreBall failed" && failedAppLog "download $pcreBall"; }
 	
 	local zlibBall="zlib-1.2.11.tar.gz"
 	wget -O "$softDir/$zlibBall" -c "http://zlib.net/$zlibBall" \
 		&& tar -zxf "$zlibBall" \
-		|| echoError "doanload $zlibBall failed" && failedAppLog "download $zlibBall"
+		|| { echoError "doanload $zlibBall failed" && failedAppLog "download $zlibBall"; }
 
 	cd "$softDir/nginx-$nginxVersion"
 	./configure --prefix=$nginxRoot \
@@ -335,7 +335,7 @@ function installMysql() {
         echoInfo "mysql was already installed"
         return 0
     fi
-
+    yum remove -y mariadb* # for centos7
     ps -ef | grep mysql | grep -v grep
     if [ $? -eq 0 ]; then
         echoInfo "mysql is running..."
@@ -345,9 +345,9 @@ function installMysql() {
     local mysqlServerBall='MySQL-server-5.5.62-1.el6.x86_64.rpm'
     local mysqlClientBall='MySQL-client-5.5.62-1.el6.x86_64.rpm'
     wget -O "$softDir/$mysqlServerBall" -c "https://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlServerBall" \
-        || echoInfo "download $mysqlServerBall failed" && failedAppLog "download $mysqlServerBall" && exit 1
+        || { echoInfo "download $mysqlServerBall failed" && failedAppLog "download $mysqlServerBall" && exit 1; }
     wget -O "$softDir/$mysqlClientBall" -c "https://dev.mysql.com/get/Downloads/MySQL-5.5/$mysqlClientBall" \
-        || echoInfo "download $mysqlClientBall failed" && failedAppLog "download $mysqlClientBall" && exit 1
+        || { echoInfo "download $mysqlClientBall failed" && failedAppLog "download $mysqlClientBall" && exit 1; }
     yum remove -y mysql*
     cd $softDir
     
@@ -397,8 +397,8 @@ function installNodejs() {
 
     local nodejsBall="node-v$nodejsVersion-linux-x64.tar.xz"
     wget -O "$softDir/$nodejsBall" -c "https://nodejs.org/dist/v$nodejsVersion/$nodejsBall" \
-        || echoError "download $nodejsBall failed" \
-        && failedAppLog "download $nodejsBall" && exit 1
+        || { echoError "download $nodejsBall failed" \
+        && failedAppLog "download $nodejsBall" && exit 1; }
 
     cd $softDir && tar -xJf $nodejsBall
     test -d $nodejsRoot || mkdir $nodejsRoot
@@ -437,8 +437,8 @@ function installMongodb() {
     
     local softBall="mongodb-linux-x86_64-$mongodbVersion.tgz"
     wget -O "$softDir/$softBall" -c "https://fastdl.mongodb.org/linux/$softBall" \
-        || echo "download $softBall" \
-        && failedAppLog "download $softBall" && exit 1
+        || { echo "download $softBall" \
+        && failedAppLog "download $softBall" && exit 1; }
 
     cd $softDir && tar -xzf $softBall
     mv "mongodb-linux-x86_64-$mongodbVersion" "$mongodbRoot"
@@ -470,8 +470,8 @@ function installVimPlugins() {
     # sh -c "$startDir/public/vim_bootstrap.sh"
     cd $startDir
     wget -c -O "$startDir/bootstrap.sh" "https://raw.githubusercontent.com/GerryLon/spf13-vim/gerrylon_dev/bootstrap.sh" \
-        || echo "download vim_bootstrap.sh failed" \
-        && failedAppLog "download vim_bootstrap.sh" && exit 1
+        || { echo "download vim_bootstrap.sh failed" \
+        && failedAppLog "download vim_bootstrap.sh" && exit 1; }
     chmod u+x "$startDir/bootstrap.sh"
     $startDir/bootstrap.sh
     cd $startDir
