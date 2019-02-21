@@ -86,6 +86,18 @@ if isCmdExist mysql; then
     fi
 fi
 
+# start redis
+if isCmdExist redis-server; then
+    ps -ef | grep redis-server | grep -v grep
+    
+    if [ $? -eq 0  ]; then
+        echoInfo 'redis is already running'
+    else
+        redisRoot=`getProperty $appConf redisRoot`
+        $redisRoot/bin/redis-server $redisRoot/conf/redis.conf
+    fi
+fi
+
 # nptdate cn.pool.ntp.org
 if isCmdExist ntpdate; then
     echoInfo "sync time..."
