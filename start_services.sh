@@ -15,7 +15,7 @@ appConf="$scriptDir/app.properties"
 function mountWorkspace() {
 	mountFlag=`getProperty $appConf mount`
 	if [ "x$mountFlag" != "x1" ]; then
-		echoWarn "you do not wanna install git"
+		echoWarn "you do not wanna mount"
 		return 1
 	fi
 	
