@@ -12,6 +12,8 @@ etcProfile='/etc/profile'
 startDir=`pwd`
 appConf="$scriptDir/app.properties"
 softDir=`getProperty $appConf softDir`
+centosVersion=`cat /etc/redhat-release | sed -r 's/.* ([0-9]+)\..*/\1/'`
+echoInfo "centos version: $centosVersion"
 
 rm -rf $logFile
 echoInfo "install log will be set at:"
@@ -51,7 +53,7 @@ echoInfo 'checking aliyun yum repository'
 if ! yum repolist | grep -q 'aliyun.com'; then
 	echoInfo 'installing aliyun yum repository ...'
 	mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-	wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-6.repo
+	wget -O "/etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-${centosVersion}.repo"
 	yum makecache
 else
 	echoInfo 'aliyun yum repository was already installed'
@@ -162,11 +164,12 @@ function installGo() {
 		echoInfo 'installing golang ...'
 		goroot=`getProperty $appConf goroot`
 		gopath=`getProperty $appConf gopath`
+		local goVersion=`getProperty $appConf goVersion`
 
 		test ! -d $goroot && mkdir -p $goroot
 		test ! -d $gopath && mkdir -p $gopath
 
-		golangBall='go1.11.linux-amd64.tar.gz'
+		golangBall="go${goVersion}.linux-amd64.tar.gz"
 
 		wget -O "$softDir/$golangBall" -c "https://studygolang.com/dl/golang/$golangBall"	
 		if [ $? -ne 0 ]; then
