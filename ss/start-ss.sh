@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# cd dev-scripts/ss
+
 ssPort=12345
 ssPasswd='your password here'
 
@@ -12,7 +14,7 @@ service iptables save
 # docker run --restart=always --name=myshadowsocks -d -p $ssPort:$ssPort -p $ssPort:$ssPort/udp oddrationale/docker-shadowsocks -s 0.0.0.0 -p $ssPort -k $ssPort  -m aes-256-cfb
 
 docker build -t myss:1.0 .
-docker run -d --restart=always -p $ssPort:$ssPort myss:1.0 -s 0.0.0.0 -p $ssPort -k $ssPasswd -m aes-256-cfb 
+docker run -d --restart=always -p $ssPort:$ssPort -p $ssPort:$ssPort/udp myss:1.0 -s 0.0.0.0 -p $ssPort -k $ssPasswd -m aes-256-cfb
 
 if [ "$?" -eq 0 ]; then
 	echo "start ss success!"
